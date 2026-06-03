@@ -1,11 +1,11 @@
 name: Deploy
-
+ 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
-
+ 
 jobs:
   build-and-push:
     name: Build and Push Docker Images
@@ -14,28 +14,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-
+ 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
+ 
       - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ECR_REGISTRY }}
-
+ 
       - name: Build backend image
         run: |
           docker build -f backend/Dockerfile -t ${{ secrets.AWS_ECR_BACKEND_REPO }}:latest backend
           docker push ${{ secrets.AWS_ECR_BACKEND_REPO }}:latest
-
+ 
       - name: Build frontend image
         run: |
           docker build -f frontend/Dockerfile -t ${{ secrets.AWS_ECR_FRONTEND_REPO }}:latest frontend
           docker push ${{ secrets.AWS_ECR_FRONTEND_REPO }}:latest
-
+ 
   terraform-validate:
     name: Terraform Validate
     runs-on: ubuntu-latest
@@ -43,20 +43,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-
+ 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+ 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.10.0
-
+ 
       - name: Initialize Terraform
         working-directory: infrastructure
         run: terraform init -input=false
-
+ 
       - name: Validate Terraform
         working-directory: infrastructure
         run: terraform validate
-
+ 
       - name: Create Terraform plan
         working-directory: infrastructure
-        run: terraform plan -input=false -out=tfplan
+        run: terraform plan -input=false -out=tfplan \
+          -var="postgres_password=${{ secrets.POSTGRES_PASSWORD }}" \
+          -var="jwt_secret_key=${{ secrets.JWT_SECRET_KEY }}" \
+          -var="state_bucket_name=borderless-hms-terraform-state-117370071855"
