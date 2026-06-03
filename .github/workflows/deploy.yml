@@ -67,7 +67,8 @@ jobs:
  
       - name: Create Terraform plan
         working-directory: infrastructure
-        run: terraform plan -input=false -out=tfplan \
-          -var="postgres_password=${{ secrets.POSTGRES_PASSWORD }}" \
-          -var="jwt_secret_key=${{ secrets.JWT_SECRET_KEY }}" \
-          -var="state_bucket_name=borderless-hms-terraform-state-117370071855"
+        run: |
+          terraform plan -input=false -out=tfplan \
+            -var="postgres_password=${{ secrets.POSTGRES_PASSWORD }}" \
+            -var="jwt_secret_key=${{ secrets.JWT_SECRET_KEY }}" \
+            -var="state_bucket_name=borderless-hms-terraform-state-117370071855"
